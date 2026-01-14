@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-log4j2-{{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+data:
+  log4j2.xml: |-
+{{ tpl (.Files.Get "log4j2.xml" ) . | indent 4 }}

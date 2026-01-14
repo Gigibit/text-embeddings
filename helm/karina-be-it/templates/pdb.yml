@@ -1,0 +1,11 @@
+{{- if gt .Values.replicaCount 1.0}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-{{ .Values.app.name }}
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      {{- include "karina.selectorLabels" . | nindent 6}}
+{{- end}}

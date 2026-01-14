@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-logtemplate-{{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+data:
+  logtemplate.json: |-
+{{ tpl (.Files.Get "logtemplate.json" ) . | indent 4 }}

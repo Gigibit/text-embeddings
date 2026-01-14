@@ -1,0 +1,5 @@
+log:
+  level: DEBUG
+
+env:
+  version: 3.2.1

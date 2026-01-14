@@ -1,0 +1,12 @@
+{{- if .Values.cyberark.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-{{ .Values.app.name }}-cyberark-dap-secret
+  namespace: {{ .Values.app.namespace }}
+data:
+  secrets.yml: |
+  {{- range $secret := .Values.cyberark.secrets }}
+    {{ $secret.envName }}: !var unicreditprod/LOB{{ $.Values.cyberark.environment}}/AIM_{{ $.Values.app.aamCode}}{{ $.Values.cyberark.environment}}/{{ $secret.secretName }}/{{ $secret.secretField }}
+  {{- end }}
+{{- end }}

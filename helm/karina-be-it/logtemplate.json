@@ -1,0 +1,50 @@
+{
+  "timestamp": {
+    "$resolver": "timestamp",
+    "pattern": {
+      "format": "yyyy-MM-dd HH:mm:ss.SSS",
+      "timeZone": "UTC"
+    }
+  },
+  "severity": {
+    "$resolver": "level",
+    "field": "name"
+  },
+  "thread": {
+    "$resolver": "thread",
+    "field": "name"
+  },
+  "mdc": {
+    "$resolver": "mdc"
+  },
+  "logger": {
+    "$resolver": "logger",
+    "field": "name"
+  },
+  "line_number": {
+    "$resolver": "source",
+    "field": "lineNumber"
+  },
+  "method": {
+    "$resolver": "source",
+    "field": "methodName"
+  },
+  "message": {
+    "$resolver": "message"
+  },
+  "exception": {
+    "exceptionClass": {
+      "$resolver": "exception",
+      "field": "className"
+    },
+    "exceptionMessage": {
+      "$resolver": "exception",
+      "field": "message"
+    },
+    "stacktrace": {
+      "$resolver": "exception",
+      "field": "stackTrace",
+      "stackTrace.stringified": true
+    }
+  }
+}

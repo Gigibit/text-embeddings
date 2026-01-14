@@ -1,0 +1,282 @@
+server:
+  port: {{ .Values.app.port }}
+  shutdown: graceful
+  max-http-header-size: 5MB
+
+monitoring:
+  logging:
+    logRequest: true
+    logResponse: true
+    shouldNotFilter:
+      uri: "swagger,/webjars/,/v2/api-docs,actuator"
+
+logging.config: /mnt/application/config/log4j2.xml
+logging:
+  level:
+    root: {{ .Values.config.logging.level.root }}
+    eu:
+      unicredit: {{ .Values.config.logging.level.app }}
+      unicredit.omnichannel.rest.ArchRestServiceSupport: WARN
+  maskLogMap:
+    pin:
+      regex: '(?<="pin":")[^"]+"'
+      replacement: '*****"'
+
+
+
+http:
+  client:
+    config:
+      read.timeout: 10000
+      connect.timeout: 10000
+      pool.max.total: 100
+      pool.max.route: 100
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      host: ${HOSTNAME}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,mappings
+
+  
+security:
+  profile:
+    excluded:
+      - "/actuator/health/liveness"
+      - "/actuator/health/readiness"
+      - "/actuator/mappings"
+    mode: JWT
+  cors:
+    allowedMethods: PUT,POST,GET,DELETE,PATCH
+  iam:
+    url: http://svc-iam-server:8080
+  jwt:
+    validation:
+      encryptedPrivateKey: ${IAL_PRIVATE_KEY}
+      encryptedPrivateKeyElliptic: ${IAL_PRIVATE_KEY_ELLIPTIC}
+      passwordPrivateKey: ${IAL_PASSWORD_PRIVATE_KEY}
+      passwordPrivateKeyElliptic: ${IAL_PASSWORD_PRIVATE_KEY_ELLIPTIC}
+      jsonRegistration: ${IAL_JSON_REGISTRATION}
+      openIdConfigurationUrl: "http://svc-iam-server.ns-ial-be-iamapilayer.svc.cluster.local:8080/iam_server/v1/OMN-IT-SIT-01/.well-known/openid-configuration/"
+    negotiation:
+      enabled: true
+      productCatalogBasePath: "http://svc-product-catalog-be-it:8080"
+      noNegotiationNamespaces: "uat"
+      namespaceGroup: "code"
+      namespaceRegex: '(?<protocol>http(?:s)?:\/\/)(?<service>[A-z0-9\-]+)(?:\.(?:(?<country>it|at|de|apps|be-.*001)\.)?(?<code>ns-*[A-z0-9\-]+|[A-z0-9]{3}))?.*'
+    rest-connector-negotiation:
+      enabled: true
+
+env:
+  tower: {{ .Values.env.tower }}
+  ial:
+    readTimeout: 3000
+    connectionTimeout: 2000
+
+cache:
+  items:
+    ClientIdCache:
+      local: true
+      expiryPolicy: CreatedExpiryPolicy
+      durationAmount: 1
+      durationUnit: HOURS
+      size: 1000
+    NegotiateCache:
+      local: true
+      expiryPolicy: CreatedExpiryPolicy
+      durationAmount: 1
+      durationUnit: HOURS
+      size: 1000
+    SettingsCache:
+      local: true
+      expiryPolicy: CreatedExpiryPolicy
+      durationAmount: 1
+      durationUnit: HOURS
+      size: 2000
+      #configLocation: /mnt/application/config/redisson-jcache.yaml
+    PartialKeyCache:
+      local: true
+      expiryPolicy: CreatedExpiryPolicy
+      durationAmount: 1
+      durationUnit: HOURS
+      size: 2000
+      #configLocation: /mnt/application/config/redisson-jcache.yaml
+
+proxies:
+  client:
+    readTimeout: 10000
+    connectionTimeout: 10000
+    connectionPoolMaxTotal: 20
+    connectionPoolMaxRoute: 20
+  dossier:
+    basePath: "http://svc-dossier-be-it:8080"
+  otpservice:
+    basePath: "http://svc-otp-be-it:8080"
+  customerProfile:
+    basePath: "http://svc-customer-profile-be-it:8080"
+  communicationCenterService:
+    basePath: "http://svc-communication-center-be-it:8080"
+  productCatalog:
+    basePath: "http://svc-product-catalog-be-it:8080"
+  analytics:
+    basePath: "http://svc-analytics-be-it:8080"
+  profilerServer:
+    basePath: "http://svc-profiler-server.ns-ial-be-iamapilayer.svc.cluster.local:8080"
+  workflowManager:
+    basePath: "http://svc-workflow-manager-be-it:8080"
+
+
+
+
+signature:
+  skipCheckSignatureAndContacts: true
+
+utilsjwtsetting:
+  enableJwtContext: true
+  mockbranch: false
+  defaultChannel: UCD
+  channelBranch: BRANCH
+  channelSkip: SKIP_SIGNATURE
+  vpnUserConnectionType: R, Y
+
+ikpUtils:
+  user: ${IKP_USERNAME}
+  updateRebOnProfile: "DMB1"
+  locale: "IT"
+  localeEng: "EN"
+  errorCode:
+    getInfoNdg: "-1"
+  preconditionId: IKP_PRECONDITIONS
+  externalKeyType: IPK
+  signatureStrategyId: IPK1
+  rcFlag: E
+  rcFalse: IKP00003
+
+productDossier:
+  signatureStrategyId: OMN1
+  preconditionId: CHECK_CFN_V3
+
+bankCode: 01
+
+report:
+  productId: "cust_digitalization"
+  generation:
+    pageSize: 100
+  directory:
+    basePath: ""
+  fileName: "OMN_UCX_UCI_BOOST_"
+  format: ".csv"
+
+palantir:
+  pageSize: 100
+  scheduleDate:
+    hour: 03
+    minutes: 00
+    seconds: 00
+  callbackUrl: "/analytics/v1/intranet/callback"
+
+app:
+  bankcode: 02008
+  aam: "OLD"
+  jfm: "JFM"
+  outputFormat: "pdf-a"
+
+liberoProfessionista:
+  products: "83PUR,83PUP"
+  
+validUnicreditAccount:
+  linkableProduct: P1,C1,5G
+  linkableTypeColl: GCO
+  sportelloBuddy: "17901"
+
+whiteList:
+  branchId: "00200"
+  userId: EE00000
+  externalKeyType: OMN
+  
+minor:
+  ndgType:
+    pfm: PFM
+    pfme: PFME
+
+buddy:
+  profile: BBBS
+  minorProfile: BBBS503M
+
+coApplicant:
+  ndgStatusNotDigitalizable: 0
+  defaultSignature: WEBAPP
+  linkCode: "GCO"
+  ndgType: CO
+  ndgStatusNotDigitalizableReb: 1
+  signaturesAvailable:
+    paper: 1.0
+    mobile_buddy: 1.5
+    webapp: 2.0
+    dmb: 3.0
+    bmc: 4.0
+  statusEnum:
+    present: 3.0
+    pending: 2.0
+    not_present: 1.0
+
+numRetryCallIkp: 5
+
+specimenUtils:
+  signatureStrategyId: SPC
+  mockDAG: false
+  document:
+    aam: OMN
+    duration: 2 #days
+    bankcode: 02008
+    checkStatusToCompareValues: DOCUMENT_ARCHIVED,DOCUMENT_GROUP_CLOSED,DOSSIER_CLOSED,DOCUMENT_GROUP_TO_BE_ARCHIVED,DOCUMENT_PRINTED,DOCUMENT_PRINT_PREVIEWED
+    statusDownload: ARCHIVED,DOC_GENERATED,PRINTED
+    dxsParam:
+      name: allowedScaMethods
+      value: SMS
+      context: signature
+      
+check:
+  profile: true
+  permissions:
+    searchScimPrecondition:
+      - OMNRFLOWVIEWOMN
+    createScimPrecondition:
+      - OMNRFLOWRECOOMN
+    deleteScimPrecondition:
+      - OMNRFLOWRECOOMN
+    searchScimSignature:
+      - OMNRFLOWVIEWOMN
+    createScimSignature:
+      - OMNRFLOWRECOOMN
+    deleteScimSignature:
+      - OMNRFLOWRECOOMN
+    downloadScimCustomerDigitalization:
+      - OMNRFLOWVIEWOMN
+    uploadScimCustomerDigitalization:
+      - OMNRFLOWRECOOMN
+
+      
+scim:
+  appId: OMN-SSP
+  allCode: "***"
+  writePermission: SSPRW
+  readPermission: SSPR
+  skip: disabled
+
+division-type:
+  divisionType:
+    private: PPB
+    retail: OMC
+
+checkResponseDGA: true
+
+noUpdateRebProductStrategy: AOO_ACCOUNT_OPENING_UCI, AOO_ACCOUNT_OPENING_PAPER_UCI
+
+userDomainPrivate: P
+
+hasLightDigitalizationRebProfile: DMB1,CL03

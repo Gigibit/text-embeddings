@@ -1,0 +1,276 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dep-{{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    {{- include "karina.labels" . | nindent 4 }}
+  annotations:
+    {{- include "karina.annotations" . | nindent 4 }}
+
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      {{- include "karina.selectorLabels" . | nindent 6 }}
+
+  template:
+    metadata:
+      labels:
+        {{- include "karina.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- if .Values.image.forceRestart }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+        {{- end }}
+
+    spec:
+      terminationGracePeriodSeconds: {{ add .Values.lifecycle.sigTermDelay.seconds .Values.lifecycle.timeoutPerShutdownPhase }}
+      serviceAccountName: {{ .Values.app.serviceAccountName }}
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 20
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ .Values.app.name }}
+                topologyKey: kubernetes.io/hostname
+            - weight: 80
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ .Values.app.name }}
+                topologyKey: kubernetes.io/zone
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      containers:
+        {{- if .Values.cyberark.enabled }}
+        - name: authenticator
+          image: artifactory.devops.internal.unicreditgroup.eu/docker-public/cyk/conjur-authn-k8s-client:v0.23.6-815
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: 100Mi
+              cpu: 25m
+            limits:
+              memory: 100Mi
+              cpu: 50m
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CONJUR_AUTHN_URL
+              value: {{ .Values.cyberark.conjurAuthUrl | quote }}
+            - name: CONJUR_ACCOUNT
+              value: "unicreditgroup"
+            - name: CONJUR_AUTHN_LOGIN
+              value: {{ .Values.cyberark.authLogin | quote }}
+            - name: CONJUR_SSL_CERTIFICATE
+              valueFrom:
+                configMapKeyRef:
+                  name: cm-dap-cyberark-server-certificate
+                  key: ssl-certificate
+          volumeMounts:
+            - mountPath: /run/conjur
+              name: conjur-access-token
+        {{- end }}
+
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - sleep {{ .Values.lifecycle.sigTermDelay.seconds }}
+
+          {{/* ====================== ENV PATCH (dedup + precedence to secrets) ====================== */}}
+          {{- /* Costruisco la mappa dei nomi ENV che arrivano dai secrets (properties[*].env) */ -}}
+          {{- $secretEnvs := dict -}}
+          {{- range $s := .Values.secrets -}}
+            {{- range $p := $s.properties -}}
+              {{- $_ := set $secretEnvs $p.env true -}}
+            {{- end -}}
+          {{- end -}}
+
+          env:
+            # 1) Env base dal pod
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TZ
+              value: Europe/Rome
+
+            # 2) Env statiche: renderizza SOLO quelle NON coperte dai secrets
+            {{- range .Values.env }}
+            {{- if not (hasKey $secretEnvs .name) }}
+            - name: {{ .name }}
+              value: {{ .value | toString | quote }}
+            {{- end }}
+            {{- end }}
+
+            # 3) Env dai Secret (hanno priorità e NON verranno sovrascritte)
+            {{- range $secret := .Values.secrets }}
+            {{- range .properties }}
+            - name: {{ .env }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret.name }}
+                  key: {{ .keyRef }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .Values.cyberark.enabled }}
+            - name: CONJUR_APPLIANCE_URL
+              value: https://svc-conjur-follower.ns-cyk-be-cyberark-dap.svc.cluster.local
+            - name: CONJUR_ACCOUNT
+              value: unicreditgroup
+            - name: CONJUR_AUTHN_TOKEN_FILE
+              value: /run/conjur/access-token
+            - name: CONJUR_SSL_CERTIFICATE
+              valueFrom:
+                configMapKeyRef:
+                  name: cm-dap-cyberark-server-certificate
+                  key: ssl-certificate
+            {{- end }}
+
+            {{- if .Values.redis.enabled }}
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: cm-memorystore-redis-conf
+                  key: redis_host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: cm-memorystore-redis-conf
+                  key: redis_port
+            - name: REDIS_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sct-auth-key-mst
+                  key: redis_auth_key
+            - name: KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sct-tls-mst-jks
+                  key: password-jks
+            {{- end }}
+          {{/* ====================== FINE ENV PATCH ====================== */}}
+
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              protocol: TCP
+              name: http
+
+          volumeMounts:
+            - name: config
+              mountPath: /app/.env
+              subPath: .env
+              readOnly: true
+            {{- if .Values.cyberark.enabled }}
+            - name: config-cyberark
+              mountPath: /deployments/config/secrets.yml
+              subPath: secrets.yml
+              readOnly: true
+            - name: conjur-access-token
+              mountPath: /run/conjur
+              readOnly: true
+            {{- end }}
+            {{- if .Values.redis.enabled }}
+            - name: config-redis
+              mountPath: /mnt/application/config/redisson-jcache.yaml
+              subPath: redisson-jcache.yaml
+              readOnly: true
+            - name: sct-tls-mst
+              mountPath: /project/secrets/mst/
+              readOnly: true
+            - name: sct-ucs-internal-ca
+              mountPath: /project/secrets/ucs/
+              readOnly: true
+            - name: truststore
+              mountPath: /mnt/application/config/ca-cert.jks
+              subPath: ca-cert.jks
+              readOnly: true
+            {{- end }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      volumes:
+        - name: config
+          configMap:
+            name: cm-{{ .Values.app.name }}
+        {{- if .Values.cyberark.enabled }}
+        - name: config-cyberark
+          configMap:
+            name: cm-{{ .Values.app.name }}-cyberark-dap-secret
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory
+        {{- end }}
+        {{- if .Values.redis.enabled }}
+        - name: config-redis
+          configMap:
+            name: cm-memorystore-redis-conf-{{ .Values.app.name }}
+        - name: sct-tls-mst
+          secret:
+            secretName: sct-tls-mst
+        - name: sct-ucs-internal-ca
+          secret:
+            secretName: sct-ucs-internal-ca
+        - name: truststore
+          secret:
+            secretName: sct-tls-mst-jks
+            items:
+              - key: ca-cert.jks
+                path: ca-cert.jks
+        {{- end }}

@@ -1,0 +1,23 @@
+singleServerConfig:
+  idleConnectionTimeout: 10000
+  connectTimeout: 1000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  password: ${REDIS_AUTH_KEY}
+  subscriptionsPerConnection: 5
+  clientName: null
+  address: rediss://${REDIS_HOST}:${REDIS_PORT}
+  sslTruststore: file:///mnt/application/config/ca-cert.jks
+  sslTruststorePassword: ${KEYSTORE_PASSWORD}
+  sslProtocols: [TLSv1.2]
+  sslEnableEndpointIdentification: false
+  subscriptionConnectionMinimumIdleSize: 1
+  subscriptionConnectionPoolSize: 50
+  connectionMinimumIdleSize: 10
+  connectionPoolSize: 64
+  database: 0
+  dnsMonitoringInterval: 5000
+threads: 0
+nettyThreads: 0
+codec: !<org.redisson.codec.JsonJacksonCodec> { }

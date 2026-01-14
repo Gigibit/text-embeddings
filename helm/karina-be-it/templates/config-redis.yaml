@@ -1,0 +1,10 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-memorystore-redis-conf-{{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+data:
+  redisson-jcache.yaml: |-
+{{ tpl (.Files.Get "redisson-jcache.yaml" ) . | indent 4 }}
+{{- end }}

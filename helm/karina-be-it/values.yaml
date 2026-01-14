@@ -1,0 +1,75 @@
+# Default values for emb-core.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+app:
+  name: karina
+  namespace: ns-omn-be-omnifoundation
+  serviceAccountName: sa-omnifoundation-01
+  aamCode: OMN
+  nginxNamespace: ns-omn-prx-ingress-controller
+
+image:
+  repository: nexus3.nex.intranet.unicreditgroup.eu:9080/omn/karina
+  tag: 1.0.116
+  # restart pod after every deploy
+  forceRestart: true
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  className: "omn-nginx"
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  tls:
+    - secretName: sct-tls-ingress
+
+imagePullSecrets:
+  - name: sct-artifactory-registry-creds
+
+livenessProbe:
+  initialDelaySeconds: 90
+  httpGet:
+    path: /health
+    port: http
+readinessProbe:
+  initialDelaySeconds: 90
+  periodSeconds: 1
+  httpGet:
+    path: /health
+    port: http
+lifecycle:
+  timeoutPerShutdownPhase: 50
+  sigTermDelay:
+    seconds: 50
+metrics:
+  cpu: 60
+  memory:
+    enabled: false
+    value: 2000Mi
+  custom:
+    connections:
+      enabled: false
+      averageValue: 2000
+
+service:
+  pathType: ImplementationSpecific
+  port: 3000
+  type: "ClusterIP"
+  nodePort: ""
+
+
+# env:
+#   SN_INSTANCE: "http://mock.local"
+#   SN_AUTH_MODE: "basic"
+#   USE_MOCKS: "false"
+#   QUEUE_PROBE_INTERVAL_SECONDS: "300"
+#   IDP_BASE_URL: "https://mocksit.example.it"
+#   PLATFORM_CLIENT_ID: "OMN-IT-UAT-01"
+#   SSL_VERIFY: "true"
+#   LLM_PROVIDER: "mock"
+#   CORS_ALLOW_ORIGINS: "http://localhost:8081,http://127.0.0.1:8081,http://localhost:3000,http://127.0.0.1:3000"
+
+
+redis:
+  enabled: false

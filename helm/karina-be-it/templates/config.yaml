@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-{{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+data:
+  .env: |-
+{{ tpl (.Files.Get ".env" ) . | indent 4 }}

@@ -1,0 +1,194 @@
+
+replicaCount: 1
+maxReplicaCount: 1
+
+app:
+  sidecarUrl: artifactory.devops.internal.unicreditgroup.eu/docker-public/g4c/gce-proxy:1.30.1
+  dbUrl: ucs-omn-sit-001:europe-west4:sql-omn-sit-pgsql001=tcp:5432
+  namespace: ns-omn-be-omnifoundation
+  environment: sit
+  serviceAccountName: sa-omnifoundation-01
+  tier: be
+  application_code: OMN
+  version: 1.0.0
+
+image:
+  repository: artifactory.devops.internal.unicreditgroup.eu/docker-public/omn/karina
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+  forceRestart: false
+
+ingress:
+  enabled: true
+  className: omn-nginx
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  tls:
+    - secretName: sct-tls-ingress
+  hosts:
+    - host: karina.it.omn.sit.g4c.unicredit.eu
+      paths:
+        - /
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+memory:
+  InitialRAMPercentage: 80.0
+  MaxRAMPercentage: 80.0
+
+metrics:
+  cpu: 70
+  memory:
+    enabled: false
+    value: 2000Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+secrets:
+  - name: sct-omn-81-tickets-dashbaord
+    credentialName: sct-omn-81-tickets-dashbaord
+    projectId: ucs-omn-sit-001
+    createExternalSecret: true
+    properties:
+      - keyRef: TA_USER
+        env: TA_USER
+      - keyRef: TA_PASS
+        env: TA_PASS
+      - keyRef: OPENAI_EMBEDDINGS_MODEL
+        env: OPENAI_EMBEDDINGS_MODEL
+      - keyRef: OPENAI_API_KEY
+        env: OPENAI_API_KEY
+      - keyRef: AZURE_OPENAI_BASE_URL
+        env: AZURE_OPENAI_BASE_URL
+      - keyRef: JWE_PRIVATE_KEY
+        env: JWE_PRIVATE_KEY
+  
+
+cyberark:
+  enabled: true
+  environment: _DEV
+  authLogin: host/projects/omn/sit/ns-omn-be-omnifoundation
+  conjurAuthUrl: https://svc-conjur-follower.ns-cyk-be-cyberark-dap.svc.cluster.local/authn-k8s/gke-g4c-sit-01
+  secrets:
+    - envName: DB_USERNAME
+      secretName: CUSTOMER_DIGITALIZATION_DB_SIT_IT
+      secretField: username
+    - envName: DB_PASSWORD
+      secretName: CUSTOMER_DIGITALIZATION_DB_SIT_IT
+      secretField: password
+    - envName: IKP_USERNAME
+      secretName: TA12566_RACF_MILANO_OMN
+      secretField: username
+    - envName: IKP_PASSWORD
+      secretName: TA12566_RACF_MILANO_OMN
+      secretField: password
+    - envName: IAL_PRIVATE_KEY
+      secretName: DEV_PRIVATE_KEY_SIT_IAL_IT
+      secretField: password
+    - envName: IAL_PASSWORD_PRIVATE_KEY
+      secretName: DEV_PASSWORD_OF_PRIVATE_KEY_SIT_IAL_IT
+      secretField: password
+    - envName: IAL_JSON_REGISTRATION
+      secretName: DEV_JSON_REGISTRATION_SIT_IAL_IT
+      secretField: password
+    - envName: IAL_PUBLIC_NEGOTIATION_USERNAME
+      secretName: TA12566_RACF_MILANO_OMN
+      secretField: username
+    - envName: IAL_PUBLIC_NEGOTIATION_PASSWORD
+      secretName: TA12566_RACF_MILANO_OMN
+      secretField: password
+    - envName: DAG_USERNAME
+      secretName: TUOMNDITDAGCMS01_LDQUGDUS_OMN
+      secretField: username
+    - envName: DAG_PASSWORD
+      secretName: TUOMNDITDAGCMS01_LDQUGDUS_OMN
+      secretField: password
+    - envName: IAL_PRIVATE_KEY_ELLIPTIC
+      secretName: DEV_PRIVATE_ELLIPTIC_KEY_SIT_IAL_IT
+      secretField: password
+    - envName: IAL_PASSWORD_PRIVATE_KEY_ELLIPTIC
+      secretName: DEV_PASSWORD_OF_PRIVATE_ELLIPTIC_KEY_SIT_IAL_IT
+      secretField: password
+
+monitor:
+  enabled: false
+
+config:
+  logging:
+    level:
+      root: INFO
+      app: DEBUG
+  siem:
+    index: u_siem_draft
+    applicationCode: CODE
+  garante2:
+    index: wrn_test
+
+redis:
+  enabled: false
+
+lifecycle:
+  timeoutPerShutdownPhase: 55
+  sigTermDelay:
+    seconds: 25
+
+sqlProxy:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 900Mi
+    limits:
+      cpu: 100m
+      memory: 900Mi
+
+
+#TODO: change embedding backend when available
+env:
+  - name: LOG_LEVEL
+    value: "DEBUG"
+  - name: EMBEDDINGS_ENABLED
+    value: false
+  - name: N_TICKETS_NO_EMBEDDINGS
+    value: 100
+  - name: EMBEDDING_BACKEND
+    value: local
+  - name: GOOGLE_CLOUD_LOGGING_ENABLED
+    value: true
+  - name: SN_INSTANCE
+    value: https://vtsprod.service-now.com/
+  - name: HTTP_PROXY_URL
+    value: http://applicationproxy.internal.unicredit.eu:8080
+  - name: SN_AUTH_MODE
+    value: basic
+  - name: QUEUE_PROBE_INTERVAL_SECONDS
+    value: "3000000"
+  - name: OPENAI_MODEL
+    value: gpt-4.1-mini
+  - name: AI_PROVIDER
+    value: openai
+  - name: AZURE_OPENAI_DEPLOYMENT_ID
+    value: gpt-4.1-mini
+  - name: AZURE_OPENAI_API_VERSION
+    value: "2024-06-01"
+  - name: IDP_BASE_URL
+    value: https://api.it.ial.sit.g4c.unicredit.eu/iam_server/v1
+  - name: PLATFORM_CLIENT_ID
+    value: OMN-IT-SIT-01
+  - name: JWE_PRIVATE_KEY
+    value: IAL_PRIVATE_KEY_ELLIPTIC
+  - name: JWE_PRIVATE_PWD
+    value: IAL_PASSWORD_PRIVATE_KEY_ELLIPTIC
+  - name: tower
+    value: UJ

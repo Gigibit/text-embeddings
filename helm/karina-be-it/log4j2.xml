@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name={{ .Values.app.name | quote }} packages="">
+  <Appenders>
+  <Console name="STDOUT" target="SYSTEM_OUT">
+    <JsonTemplateLayout eventTemplateUri="file:///mnt/application/config/logtemplate.json" locationInfoEnabled="true">
+      <EventTemplateAdditionalField key="logType" value="[TECH]"/>
+    </JsonTemplateLayout>
+  </Console>
+  <Rewrite name="Rewrite">
+    <LogInterceptor></LogInterceptor>
+    <AppenderRef ref="STDOUT"></AppenderRef>
+  </Rewrite>
+  <Console name="SIEM_STDOUT" target="SYSTEM_OUT">
+    <PatternLayout
+      pattern="{&quot;index&quot;:&quot;{{ .Values.config.siem.index }}&quot;,&quot;sourcetype&quot;:&quot;seclog:json&quot;,&quot;event&quot;:{&quot;TIMESTAMP&quot;:&quot;%d{yyyy-MM-dd HH:mm:ss.SSS}&quot;,&quot;LOG_ID&quot;:&quot;SecLog&quot;,&quot;SESSION_ID&quot;:&quot;%X{jti}&quot;,&quot;APPLICATION_CODE&quot;:&quot;{{ .Values.config.siem.applicationCode }}&quot;,&quot;LEGAL_ENTITY&quot;:&quot;UniCredit S.p.A.&quot;,&quot;CLIENT_CODE&quot;:&quot;%X{fiscalCode}&quot;,&quot;USER_ID&quot;:&quot;%X{sub}&quot;,&quot;WORKSTATION_ID&quot;:&quot;%X{ip}&quot;,&quot;OPERATION_DESCRIPTION&quot;:&quot;%msg&quot;,&quot;OPERATION_CATEGORY&quot;:&quot;Other&quot;}}%n"/>
+  </Console>
+  <Rewrite name="SIEM_Rewrite">
+    <LogInterceptor></LogInterceptor>
+    <AppenderRef ref="SIEM_STDOUT"></AppenderRef>
+  </Rewrite>
+
+  <Console name="GARANTE2_STDOUT" target="SYSTEM_OUT">
+    <PatternLayout
+      pattern="{&quot;index&quot;:&quot;{{ .Values.config.garante2.index }}&quot;,&quot;sourcetype&quot;:&quot;wrn:json&quot;,&quot;event&quot;:{&quot;timestamp&quot;:&quot;%d{yyyy-MM-dd HH:mm:ss.SSS}&quot;,&quot;log&quot;:&quot;wrn&quot;,&quot;req_type&quot;:&quot;%X{garante2ReqType}&quot;,&quot;comp&quot;:&quot;%X{garante2Comp}&quot;,&quot;app&quot;:&quot;%X{garante2App}&quot;,&quot;fun&quot;:&quot;%X{garante2Fun}&quot;,&quot;user&quot;:&quot;%X{garante2User}&quot;,&quot;branch&quot;:&quot;%X{garante2Branch}&quot;,&quot;ip&quot;:&quot;%X{ip}&quot;,&quot;ndg&quot;:&quot;%X{garante2Ndg}&quot;,&quot;sia&quot;:&quot;%X{garante2Sia}&quot;,&quot;cid&quot;:&quot;%X{garante2Cid}&quot;,&quot;acc_type&quot;:&quot;%X{garante2AccType}&quot;,&quot;acc_branch&quot;:&quot;%X{garante2AccBranch}&quot;,&quot;acc_num&quot;:&quot;%X{garante2AccNum}&quot;,&quot;acc_iban&quot;:&quot;%X{garante2AccIban}&quot;,&quot;acc_abi&quot;:&quot;%X{garante2AccAbi}&quot;,&quot;acc_cab&quot;:&quot;%X{garante2AccCab}&quot;}}%n"/>
+  </Console>
+  <Rewrite name="GARANTE2_Rewrite">
+    <LogInterceptor></LogInterceptor>
+    <AppenderRef ref="GARANTE2_STDOUT"></AppenderRef>
+  </Rewrite>
+  </Appenders>
+
+  <Loggers>
+  <AsyncRoot includeLocation="true">
+    <AppenderRef ref="Rewrite"/>
+  </AsyncRoot>
+  <AsyncLogger includeLocation="true" name="eu.unicredit" additivity="false">
+    <AppenderRef ref="Rewrite"/>
+  </AsyncLogger>
+  <AsyncLogger includeLocation="true" name="eu.unicredit.omnichannel.monitoring.logging.siem" additivity="false">
+    <AppenderRef ref="SIEM_Rewrite"/>
+  </AsyncLogger>
+  <AsyncLogger includeLocation="true" name="eu.unicredit.omnichannel.monitoring.logging.garante2"
+    additivity="false">
+    <AppenderRef ref="GARANTE2_Rewrite"/>
+  </AsyncLogger>
+  </Loggers>
+</Configuration>
