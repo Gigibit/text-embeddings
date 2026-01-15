@@ -10,8 +10,17 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-RUN mkdir /app/.cache 
-RUN chown 1001 /app/.cache
+
+# (both the HF-safe files and any tokenizer/config weights)
+RUN python - <<'PY'
+from sentence_transformers import SentenceTransformer
+# Will populate HF cache under /opt/hf
+SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+PY
+
+# Make the cache readable at runtime by non-root if you drop privileges later
+RUN chmod -R a+rX /opt/hf
+
 COPY . /app
 
 USER 1001
