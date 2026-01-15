@@ -2,7 +2,7 @@ buildContainer:
   tool:
     docker:
       file: Docker/Dockerfile
-      imageTag: 1.2
+      imageTag: 1.3
 
 publishArtifact:
   release: true
@@ -14,7 +14,7 @@ deployList:
           environment: sit # sit, qa, prod
           artifact:
             name: omn/karina
-            version: 1.2
+            version: 1.3
           tenant: C0 # IT: C0, DE: HV, AT: BA
           configurations:
             - OMN BE SIT ENV
