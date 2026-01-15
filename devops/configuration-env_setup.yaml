@@ -1,11 +1,11 @@
-# buildContainer:
-#   tool:
-#     docker:
-#       file: Docker/Dockerfile
-#       imageTag: 1.1
+buildContainer:
+  tool:
+    docker:
+      file: Docker/Dockerfile
+      imageTag: 1.2
 
-# publishArtifact:
-#   release: true
+publishArtifact:
+  release: true
 
 deployList:
   repeatableSets:
@@ -14,7 +14,7 @@ deployList:
           environment: sit # sit, qa, prod
           artifact:
             name: omn/karina
-            version: 1.1
+            version: 1.2
           tenant: C0 # IT: C0, DE: HV, AT: BA
           configurations:
             - OMN BE SIT ENV
